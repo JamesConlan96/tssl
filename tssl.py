@@ -23,10 +23,13 @@ def genParser() -> argparse.ArgumentParser:
     @return: argument parser object
     """
     parser = argparse.ArgumentParser()
+    targets = parser.add_argument_group("targets", description="targets to " +
+                              "scan (can be specified multiple times per " +
+                              "command)")
     existOptions = parser.add_mutually_exclusive_group()
-    parser.add_argument('-f', '--file', action="store_true",
-                        help="treat targets as files containing URLs to " +
-                        "scan (1 per line)")
+    targets.add_argument('-f', '--file', nargs=1, action="extend",
+                         help="file containing URLs to scan (1 per line)",
+                         dest="files", metavar="FILE")
     parser.add_argument('-l', '--label', action="store",
                         help="add a label to output files")
     existOptions.add_argument('-o', '--overwrite', action="store_true",
@@ -34,8 +37,8 @@ def genParser() -> argparse.ArgumentParser:
     existOptions.add_argument('-s', '--skip', action="store_true",
                               help="skip targets for which matching output " +
                               "files already exist")
-    parser.add_argument('target', action="store", nargs='*',
-                        help="URL(s) to scan")
+    targets.add_argument('-u', '--url', nargs=1, action="extend",
+                         help="URL to scan", dest="urls", metavar="URL")
     return parser
 
 def yesNo(prompt: str) -> bool:
@@ -53,10 +56,20 @@ def yesNo(prompt: str) -> bool:
 
 def main():
     """Main method"""
-    args = genParser().parse_args()
+    parser = genParser()
+    args = parser.parse_args()
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit()
+    elif not args.urls and not args.files:
+        sys.exit("Please specify at least one target using -u/--url and/or " +
+                 "-f/--file")
     targets = []
-    for target in args.target:
-        if args.file:
+    if args.urls:
+        for target in args.urls:
+            targets.append(target)
+    if args.files:
+        for target in args.files:
             try:
                 target = PosixPath(target)
             except:
@@ -64,9 +77,8 @@ def main():
             if not target.exists():
                 sys.exit(f"Input file '{target}' does not exist")
             with target.open() as f:
-                targets += f.readlines()
-        else:
-            targets.append(target)
+                targets += f.read().splitlines()
+    targets = set(targets)
     outDir = "testssl"
     os.makedirs(outDir, exist_ok = True)
     startTime = datetime.now()
