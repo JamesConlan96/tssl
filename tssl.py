@@ -25,14 +25,14 @@ def genParser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     existOptions = parser.add_mutually_exclusive_group()
     parser.add_argument('-f', '--file', action="store_true",
-                        help="Treat <target> as a file(s) containing URLs to " +
+                        help="treat targets as files containing URLs to " +
                         "scan (1 per line)")
     parser.add_argument('-l', '--label', action="store",
-                        help="Add a label to output files")
+                        help="add a label to output files")
     existOptions.add_argument('-o', '--overwrite', action="store_true",
-                              help="Overwrite existing results")
+                              help="overwrite existing results")
     existOptions.add_argument('-s', '--skip', action="store_true",
-                              help="Skip targets for which matching output " +
+                              help="skip targets for which matching output " +
                               "files already exist")
     parser.add_argument('target', action="store", nargs='*',
                         help="URL(s) to scan")
