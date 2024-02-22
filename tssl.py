@@ -54,7 +54,7 @@ def yesNo(prompt: str) -> bool:
         else:
             return yesNo(prompt)
 
-def main():
+def main() -> None:
     """Main method"""
     parser = genParser()
     args = parser.parse_args()
