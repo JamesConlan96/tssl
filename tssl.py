@@ -42,6 +42,8 @@ def genParser() -> argparse.ArgumentParser:
                               "files already exist")
     targets.add_argument('-u', '--url', nargs=1, action="extend",
                          help="URL to scan", dest="urls", metavar="URL")
+    parser.add_argument('-v', '--verbose', action="store_true",
+                        help="display verbose output")
     return parser
 
 def yesNo(prompt: str) -> bool:
@@ -126,6 +128,8 @@ def main() -> None:
                       '-H', '-I', '-T', '--BB', '--SI', '-R', '-C', '-B', '-O',
                       '-Z', '-W', '-A', '-L', '-WS', '-F', '-J', '-D', '-4',
                       target]
+        if args.verbose:
+            testsslCmd.insert(4, '--show-each')
         htmlTitle = f"TestSSL - {target}"
         htmlTitle = f"{htmlTitle} - {args.label}" if args.label else htmlTitle
         ahaCmd = ['aha', '--black', '-t', htmlTitle]

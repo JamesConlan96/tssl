@@ -5,7 +5,7 @@ A wrapper around testssl.sh and aha to aid in TLS/SSL testing
 ## Usage
 
 ~~~
-usage: tssl.py [-h] [-d DIRECTORY] [-f FILE] [-l LABEL] [-o | -s] [-u URL]
+usage: tssl.py [-h] [-d DIRECTORY] [-f FILE] [-l LABEL] [-o | -s] [-u URL] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -15,6 +15,7 @@ options:
                         add a label to output files
   -o, --overwrite       overwrite existing results
   -s, --skip            skip targets for which matching output files already exist
+  -v, --verbose         display verbose output
 
 targets:
   targets to scan (can be specified multiple times per command)
