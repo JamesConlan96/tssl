@@ -13,7 +13,7 @@ options:
                         directory to save output to instead of the current working directory
   -f FILE, --file FILE  newline delimited file containing URLs to scan (can be specified multiple times per command)
   -H HEADER, --header HEADER
-                        header to add to all requests in the form '<name>: <value>' (can be specified multiple times per command)
+                        HTTP header to add to all requests in the form '<name>: <value>' (can be specified multiple times per command)
   -l LABEL, --label LABEL
                         add a label to output files
   -o, --overwrite       overwrite existing results

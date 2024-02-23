@@ -32,7 +32,7 @@ def genParser() -> argparse.ArgumentParser:
                         "(can be specified multiple times per command)",
                         dest="files", metavar="FILE")
     parser.add_argument('-H', '--header', action="extend", nargs=1,
-                        help="header to add to all requests in the form " +
+                        help="HTTP header to add to all requests in the form " +
                         "'<name>: <value>' (can be specified multiple times " +
                         "per command)", dest="headers", metavar="HEADER")
     parser.add_argument('-l', '--label', action="store",
