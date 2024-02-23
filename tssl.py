@@ -119,12 +119,18 @@ def main() -> None:
                 sys.exit(f"Output files for '{target}' already exist, " + 
                          "rerun with -o/--overwrite to overwrite them or " +
                          "-s/--skip to skip previously scanned hosts")
-        testsslCmd = ['/usr/bin/env', 'bash', '-c','testssl --warnings batch ' +
-                      f'--wide --color 3 -oJ "{fileName}.json" -oL "' +
-                      f'{fileName}.log" -oC "{fileName}.csv" "{target}"']
+        testsslCmd = ['testssl', '--warnings', 'batch', '--wide', '--sneaky', 
+                      '--color', '3', '-oJ', f"{fileName}.json", '-oL', 
+                      f"{fileName}.log", '-oC', f"{fileName}.csv", '-e', '-E', 
+                      '-s', '-f', '-p', '-g', '-S', '-P', '-c', '-h', '-U', 
+                      '-H', '-I', '-T', '--BB', '--SI', '-R', '-C', '-B', '-O',
+                      '-Z', '-W', '-A', '-L', '-WS', '-F', '-J', '-D', '-4',
+                      target]
         htmlTitle = f"TestSSL - {target}"
         htmlTitle = f"{htmlTitle} - {args.label}" if args.label else htmlTitle
         ahaCmd = ['aha', '--black', '-t', htmlTitle]
+        with open(f"{fileName}.command", 'w') as f:
+            f.write(' '.join(testsslCmd))
         testsslProc = subprocess.Popen(testsslCmd, stdout=subprocess.PIPE,
                                        stderr=sys.stderr, bufsize=1,
                                        universal_newlines=True)
