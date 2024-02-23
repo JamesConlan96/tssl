@@ -23,16 +23,18 @@ def genParser() -> argparse.ArgumentParser:
     @return: argument parser object
     """
     parser = argparse.ArgumentParser()
-    targets = parser.add_argument_group("targets", description="targets to " +
-                              "scan (can be specified multiple times per " +
-                              "command)")
     existOptions = parser.add_mutually_exclusive_group()
     parser.add_argument('-d', '--directory', type=PosixPath, default='.',
                         help="directory to save output to instead of the " +
                         "current working directory")
-    targets.add_argument('-f', '--file', nargs=1, action="extend",
-                         help="file containing URLs to scan (1 per line)",
-                         dest="files", metavar="FILE")
+    parser.add_argument('-f', '--file', nargs=1, action="extend",
+                        help="newline delimited file containing URLs to scan " +
+                        "(can be specified multiple times per command)",
+                        dest="files", metavar="FILE")
+    parser.add_argument('-H', '--header', action="extend", nargs=1,
+                        help="header to add to all requests in the form " +
+                        "'<name>: <value>' (can be specified multiple times " +
+                        "per command)", dest="headers", metavar="HEADER")
     parser.add_argument('-l', '--label', action="store",
                         help="add a label to output files")
     existOptions.add_argument('-o', '--overwrite', action="store_true",
@@ -40,8 +42,9 @@ def genParser() -> argparse.ArgumentParser:
     existOptions.add_argument('-s', '--skip', action="store_true",
                               help="skip targets for which matching output " +
                               "files already exist")
-    targets.add_argument('-u', '--url', nargs=1, action="extend",
-                         help="URL to scan", dest="urls", metavar="URL")
+    parser.add_argument('-u', '--url', nargs=1, action="extend",
+                        help="URL to scan (can be specified multiple times " +
+                        "per command)", dest="urls", metavar="URL")
     parser.add_argument('-v', '--verbose', action="store_true",
                         help="display verbose output")
     return parser
@@ -85,6 +88,10 @@ def main() -> None:
     elif not args.directory.is_dir():
         sys.exit(f"Specified output directory '{args.directory}' is not a " +
                  "directory")
+    if args.headers:
+        for header in args.headers:
+            if not re.match(r'^.+?: .+?$', header):
+                sys.exit(f"'{header}' is not a valid header")
     targets = []
     if args.urls:
         for target in args.urls:
@@ -127,11 +134,30 @@ def main() -> None:
                       target]
         if args.verbose:
             testsslCmd.insert(4, '--show-each')
+        if args.headers:
+            for header in args.headers:
+                testsslCmd.insert(-9, '--reqheader')
+                testsslCmd.insert(-9, header)
         htmlTitle = f"TestSSL - {target}"
         htmlTitle = f"{htmlTitle} - {args.label}" if args.label else htmlTitle
         ahaCmd = ['aha', '--black', '-t', htmlTitle]
         with open(f"{fileName}.command", 'w') as f:
-            f.write(' '.join(testsslCmd))
+            toQuote = [' ', '/', '\\', ':']
+            for arg in testsslCmd:
+                for char in toQuote:
+                    if char in arg:
+                        arg = f"'{arg}'"
+                        break
+                f.write(f"{arg} ")
+            f.write("| ")
+            for i, arg in enumerate(ahaCmd):
+                for char in toQuote:
+                    if char in arg:
+                        arg = f"'{arg}'"
+                        break
+                f.write(f"{arg}")
+                if i != len(ahaCmd) - 1:
+                    f.write(" ")
         testsslProc = subprocess.Popen(testsslCmd, stdout=subprocess.PIPE,
                                        stderr=sys.stderr, bufsize=1,
                                        universal_newlines=True)
