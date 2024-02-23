@@ -27,6 +27,9 @@ def genParser() -> argparse.ArgumentParser:
                               "scan (can be specified multiple times per " +
                               "command)")
     existOptions = parser.add_mutually_exclusive_group()
+    parser.add_argument('-d', '--directory', type=PosixPath, default='.',
+                        help="directory to save output to instead of the " +
+                        "current working directory")
     targets.add_argument('-f', '--file', nargs=1, action="extend",
                          help="file containing URLs to scan (1 per line)",
                          dest="files", metavar="FILE")
@@ -53,6 +56,13 @@ def yesNo(prompt: str) -> bool:
             return False
         else:
             return yesNo(prompt)
+        
+def mkdirs(path: PosixPath) -> None:
+    """Makes the directories in a given path"""
+    try:
+        os.makedirs(path, exist_ok=True)
+    except PermissionError:
+        sys.exit(f"You do not have permission to write to '{path}'")
 
 def main() -> None:
     """Main method"""
@@ -64,6 +74,15 @@ def main() -> None:
     elif not args.urls and not args.files:
         sys.exit("Please specify at least one target using -u/--url and/or " +
                  "-f/--file")
+    if not args.directory.exists():
+        if yesNo(f"Output directory '{args.directory}' does not exist, create" +
+                 " it?"):
+            mkdirs(args.directory)
+        else:
+            sys.exit()
+    elif not args.directory.is_dir():
+        sys.exit(f"Specified output directory '{args.directory}' is not a " +
+                 "directory")
     targets = []
     if args.urls:
         for target in args.urls:
@@ -79,13 +98,13 @@ def main() -> None:
             with target.open() as f:
                 targets += f.read().splitlines()
     targets = set(targets)
-    outDir = "testssl"
-    os.makedirs(outDir, exist_ok = True)
+    outDir = args.directory / "testssl"
+    mkdirs(outDir)
     startTime = datetime.now()
     print(f"Starting scan at {startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
     htmls = []
     for target in targets:
-        fileName = "testssl/testssl_" + re.match(r'^(.+?://)?(.+?)$', 
+        fileName = f"{outDir}/testssl_" + re.match(r'^(.+?://)?(.+?)$', 
                    target.rstrip('/')).group(2).replace('/', '_').replace(' ', 
                                                            '').replace(':', '_')
         fileName = f"{fileName}_{args.label}" if args.label else fileName

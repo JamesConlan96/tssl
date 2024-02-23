@@ -5,10 +5,12 @@ A wrapper around testssl.sh and aha to aid in TLS/SSL testing
 ## Usage
 
 ~~~
-usage: tssl.py [-h] [-f FILE] [-l LABEL] [-o | -s] [-u URL]
+usage: tssl.py [-h] [-d DIRECTORY] [-f FILE] [-l LABEL] [-o | -s] [-u URL]
 
 options:
   -h, --help            show this help message and exit
+  -d DIRECTORY, --directory DIRECTORY
+                        directory to save output to instead of the current working directory
   -l LABEL, --label LABEL
                         add a label to output files
   -o, --overwrite       overwrite existing results
