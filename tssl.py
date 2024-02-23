@@ -104,7 +104,7 @@ def main() -> None:
     mkdirs(outDir)
     startTime = datetime.now()
     print(f"Starting scan at {startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
-    htmls = []
+    outFiles = []
     for target in targets:
         fileName = f"{outDir}/testssl_" + re.match(r'^(.+?://)?(.+?)$', 
                    target.rstrip('/')).group(2).replace('/', '_').replace(' ', 
@@ -144,18 +144,18 @@ def main() -> None:
             testsslOut += char
             sys.stdout.buffer.write(char)
         htmlFile = f"{fileName}.html"
-        htmls.append(htmlFile)
         with open(htmlFile, 'w') as f:
             aha = subprocess.run(ahaCmd, input=testsslOut, stdout=f,
                                  stderr=sys.stderr)
+        outFiles.append(fileName)
     endTime = datetime.now()
     dur = endTime - startTime
     dur -= timedelta(microseconds=dur.microseconds)
     print(f"Scanning completed at {endTime.strftime('%d/%m/%Y - %H:%M:%S')} " +
           f"(Duration: {str(dur)})")
-    if htmls and yesNo("Would you like to view the HTML output files now?"):
-        for url in htmls:
-            webbrowser.open_new_tab(url)
+    if outFiles and yesNo("Would you like to view the HTML output files now?"):
+        for url in outFiles:
+            webbrowser.open_new_tab(f"{url}.html")
 
 
 if __name__ == "__main__":
