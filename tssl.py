@@ -123,10 +123,7 @@ def main() -> None:
                          "-s/--skip to skip previously scanned hosts")
         testsslCmd = ['testssl', '--warnings', 'batch', '--wide', '--sneaky', 
                       '--color', '3', '-oJ', f"{fileName}.json", '-oL', 
-                      f"{fileName}.log", '-oC', f"{fileName}.csv", '-e', '-E', 
-                      '-s', '-f', '-p', '-g', '-S', '-P', '-c', '-h', '-U', 
-                      '-H', '-I', '-T', '--BB', '--SI', '-R', '-C', '-B', '-O',
-                      '-Z', '-W', '-A', '-L', '-WS', '-F', '-J', '-D', '-4',
+                      f"{fileName}.log", '-oC', f"{fileName}.csv", '-9', '-E',
                       target]
         if args.verbose:
             testsslCmd.insert(4, '--show-each')
