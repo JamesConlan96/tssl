@@ -187,13 +187,15 @@ def main() -> None:
     dur -= timedelta(microseconds=dur.microseconds)
     print(f"Scanning completed at {endTime.strftime('%d/%m/%Y - %H:%M:%S')} " +
           f"(Duration: {str(dur)})")
-    if outFiles and yesNo("Would you like to view the HTML output files now?"):
+    if outFiles and not docker and \
+        yesNo("Would you like to view the HTML output files now?"):
         for url in outFiles:
             webbrowser.open_new_tab(f"{url}.html")
 
 
 if __name__ == "__main__":
     try:
+        docker = True if os.getenv("TSSL_DOCKER") else False
         main()
     except KeyboardInterrupt:
         sys.exit("\nTerminated by user")
