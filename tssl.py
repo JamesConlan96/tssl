@@ -192,10 +192,14 @@ def main() -> None:
         for url in outFiles:
             webbrowser.open_new_tab(f"{url}.html")
 
-
-if __name__ == "__main__":
+def app() -> None:
+    """Runs tssl"""
     try:
         docker = True if os.getenv("TSSL_DOCKER") else False
         main()
     except KeyboardInterrupt:
         sys.exit("\nTerminated by user")
+
+
+if __name__ == "__main__":
+    app()

@@ -1,5 +1,7 @@
 __pycache__
+build
 testssl
+tssl.egg-info
 *.pyi
 *.pyc
 *.pyd
