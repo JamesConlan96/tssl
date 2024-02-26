@@ -76,7 +76,14 @@ def main() -> None:
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit()
-    elif not args.urls and not args.files:
+    toCheck = []
+    for i in [args.files, args.urls, args.label, args.headers, str(args.directory)]:
+        if i is not None:
+            toCheck.extend(i)
+    for string in toCheck:
+        if "'" in str(string):
+            sys.exit("Arguments cannot contain single quotes (')")
+    if not args.urls and not args.files:
         sys.exit("Please specify at least one target using -u/--url and/or " +
                  "-f/--file")
     if not args.directory.exists():
