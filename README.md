@@ -22,8 +22,25 @@ options:
   -v, --verbose         display verbose output
 ~~~
 
+## Installation
+
+### Pipx (recommended)
+
+~~~
+pipx install 'git+https://github.com/JamesConlan96/tssl.git'
+~~~
+
+### Docker
+
+Note that the following is a guideline only and you may need to adjust the docker commands to fit your use case:
+
+~~~
+docker build -t tssl 'https://github.com/JamesConlan96/tssl.git#main' --network=host
+docker run -it -v "$(pwd)/test:/tssl_out" --network=host tssl
+~~~
+
 ## Requirements
 
 - testssl.sh
 - aha
-- A web browser
+- A web browser (not supported when running with Docker)
