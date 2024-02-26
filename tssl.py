@@ -77,7 +77,8 @@ def main() -> None:
         parser.print_help()
         sys.exit()
     toCheck = []
-    for i in [args.files, args.urls, args.label, args.headers, str(args.directory)]:
+    for i in [args.files, args.urls, args.label, args.headers,
+              str(args.directory)]:
         if i is not None:
             toCheck.extend(i)
     for string in toCheck:
