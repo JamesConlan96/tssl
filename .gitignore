@@ -14,3 +14,4 @@ tssl.egg-info
 *.log
 *.json
 *.html
+*.zip

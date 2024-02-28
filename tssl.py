@@ -8,14 +8,20 @@ provide useful output files
 
 
 import argparse
+import atexit
 from datetime import datetime, timedelta
+from getpass import getpass
 from glob import glob
 import os
+from password_strength import PasswordPolicy
 from pathlib import PosixPath
+import pyzipper
 import re
+from shutil import rmtree
 import subprocess
 import sys
 import webbrowser
+import zipfile
 
 
 def genParser() -> argparse.ArgumentParser:
@@ -24,9 +30,13 @@ def genParser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser()
     existOptions = parser.add_mutually_exclusive_group()
+    zipOptions = parser.add_mutually_exclusive_group()
     parser.add_argument('-d', '--directory', type=PosixPath, default='.',
                         help="directory to save output to instead of the " +
                         "current working directory")
+    zipOptions.add_argument('-e', '--encrypt', action="store_true",
+                            help="compress output directory into an AES256 " +
+                            "encrypted zip archive")
     parser.add_argument('-f', '--file', nargs=1, action="extend",
                         help="newline delimited file containing URLs to scan " +
                         "(can be specified multiple times per command)",
@@ -47,7 +57,89 @@ def genParser() -> argparse.ArgumentParser:
                         "per command)", dest="urls", metavar="URL")
     parser.add_argument('-v', '--verbose', action="store_true",
                         help="display verbose output")
+    zipOptions.add_argument('-z', '--zip', action="store_true",
+                            help="compress output directory into an " +
+                            "unencrypted zip archive")
     return parser
+
+def parseArgs() -> argparse.Namespace:
+    """Parses CLI arguments
+    @return: parsed arguments object
+    """
+    parser = genParser()
+    args = parser.parse_args()
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit()
+    toCheck = []
+    for i in [args.files, args.urls, args.label, args.headers,
+              str(args.directory)]:
+        if i is not None:
+            toCheck.extend(i)
+    for string in toCheck:
+        if "'" in str(string):
+            sys.exit("Arguments cannot contain single quotes (')")
+    if not args.urls and not args.files:
+        sys.exit("Please specify at least one target using -u/--url and/or " +
+                 "-f/--file")
+    if str(args.directory).endswith(".zip") and (args.zip or args.encrypt):
+        args.directory = PosixPath(str(args.directory)[:-4])
+    if not args.directory.exists():
+        if yesNo(f"Output directory '{args.directory}' does not exist, create" +
+                 " it?"):
+            mkdirs(args.directory)
+        else:
+            sys.exit()
+    elif not args.directory.is_dir():
+        sys.exit(f"Specified output directory '{args.directory}' is not a " +
+                 "directory")
+    elif args.zip or args.encrypt:
+        if not yesNo(f"Output directory '{args.directory}' exists, all " + 
+                     "contents will be compressed, continue?"):
+            sys.exit()
+    if args.zip or args.encrypt:
+        if PosixPath(f"{str(args.directory)}.zip").exists() and not \
+            args.overwrite and not yesNo(f"Zip archive '{args.directory}.zip'" +
+                                         " exists, overwrite it?"):
+            sys.exit()
+        if args.directory.resolve().samefile(os.getcwd()):
+            sys.exit("Cannot zip the current directory, retry using " + 
+                     "-d/--directory")
+    if args.headers:
+        for header in args.headers:
+            if not re.match(r'^.+?: .+?$', header):
+                sys.exit(f"'{header}' is not a valid header")
+    if args.encrypt:
+        passPolicy = PasswordPolicy.from_names(length=12, uppercase=1,
+                                               numbers=1, special=1)
+        while True:
+            passw = getpass("Password for zip archive: ")
+            if not passPolicy.test(passw):
+                if getpass("Confirm password: ") == passw:
+                    args.passw = passw
+                    break
+                else:
+                    print("Passwords did not match, try again")
+            else:
+                print("Passwords must be at least 12 characters long and " +
+                      "contain at least 1 uppercase letter, 1 digit, and 1 " +
+                      "special character")
+    targets = []
+    if args.urls:
+        for target in args.urls:
+            targets.append(target)
+    if args.files:
+        for target in args.files:
+            try:
+                target = PosixPath(target)
+            except:
+                sys.exit(f"'{target}' is not a valid file path")
+            if not target.exists():
+                sys.exit(f"Input file '{target}' does not exist")
+            with target.open() as f:
+                targets += f.read().splitlines()
+    args.targets = set(targets)
+    return args
 
 def yesNo(prompt: str) -> bool:
         """Prompts the user for a yes/no response
@@ -69,58 +161,15 @@ def mkdirs(path: PosixPath) -> None:
     except PermissionError:
         sys.exit(f"You do not have permission to write to '{path}'")
 
-def main() -> None:
-    """Main method"""
-    parser = genParser()
-    args = parser.parse_args()
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit()
-    toCheck = []
-    for i in [args.files, args.urls, args.label, args.headers,
-              str(args.directory)]:
-        if i is not None:
-            toCheck.extend(i)
-    for string in toCheck:
-        if "'" in str(string):
-            sys.exit("Arguments cannot contain single quotes (')")
-    if not args.urls and not args.files:
-        sys.exit("Please specify at least one target using -u/--url and/or " +
-                 "-f/--file")
-    if not args.directory.exists():
-        if yesNo(f"Output directory '{args.directory}' does not exist, create" +
-                 " it?"):
-            mkdirs(args.directory)
-        else:
-            sys.exit()
-    elif not args.directory.is_dir():
-        sys.exit(f"Specified output directory '{args.directory}' is not a " +
-                 "directory")
-    if args.headers:
-        for header in args.headers:
-            if not re.match(r'^.+?: .+?$', header):
-                sys.exit(f"'{header}' is not a valid header")
-    targets = []
-    if args.urls:
-        for target in args.urls:
-            targets.append(target)
-    if args.files:
-        for target in args.files:
-            try:
-                target = PosixPath(target)
-            except:
-                sys.exit(f"'{target}' is not a valid file path")
-            if not target.exists():
-                sys.exit(f"Input file '{target}' does not exist")
-            with target.open() as f:
-                targets += f.read().splitlines()
-    targets = set(targets)
+def runTestssl(args: argparse.Namespace) -> list[str]:
+    """Runs testssl.sh and saves output files
+    @param args: parsed CLI arguments object
+    @return list of output filenames (without file extensions)
+    """
     outDir = args.directory / "testssl"
     mkdirs(outDir)
-    startTime = datetime.now()
-    print(f"Starting scan at {startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
     outFiles = []
-    for target in targets:
+    for target in args.targets:
         fileName = f"{outDir}/testssl_" + re.match(r'^(.+?://)?(.+?)$', 
                    target.rstrip('/')).group(2).replace('/', '_').replace(' ', 
                                                            '').replace(':', '_')
@@ -129,7 +178,10 @@ def main() -> None:
         if existingOutput:
             if args.overwrite:
                 for f in existingOutput:
-                    os.remove(f)
+                    try:
+                        os.remove(f)
+                    except:
+                        sys.exit(f"Could not delete file '{f}'")
             elif args.skip:
                 continue
             else:
@@ -182,24 +234,79 @@ def main() -> None:
             aha = subprocess.run(ahaCmd, input=testsslOut, stdout=f,
                                  stderr=sys.stderr)
         outFiles.append(fileName)
-    endTime = datetime.now()
-    dur = endTime - startTime
-    dur -= timedelta(microseconds=dur.microseconds)
-    print(f"Scanning completed at {endTime.strftime('%d/%m/%Y - %H:%M:%S')} " +
-          f"(Duration: {str(dur)})")
-    if outFiles and not docker and \
-        yesNo("Would you like to view the HTML output files now?"):
-        for url in outFiles:
-            webbrowser.open_new_tab(f"{url}.html")
+    return outFiles
 
-def app() -> None:
-    """Runs tssl"""
+def zipDir(path: PosixPath, passw: str = "") -> None:
+    """Zips a directory
+    @param path: path to the directory to zip
+    @param encrypt: password to use to encrypt the zip (not encrypted if empty)
+    """
+    print("Creating zip archive...")
+    path = path.resolve()
+    passw = bytes(passw, "utf-8")
+    zipName = f"{path}.zip"
+    try:
+        if passw:
+            zip = pyzipper.AESZipFile(zipName, 'w',
+                                      compression=pyzipper.ZIP_LZMA,
+                                      encryption=pyzipper.WZ_AES)
+            zip.setpassword(passw)
+        else:
+            zip = zipfile.ZipFile(zipName, 'w', compression=zipfile.ZIP_LZMA)
+        atexit.register(zip.close)
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                zip.write(os.path.join(root, file),
+                        os.path.relpath(os.path.join(root, file), 
+                                        os.path.join(path, '..')))
+    except:
+        sys.exit(f"Could not create zip archive '{zipName}'")
+    print("Verifying zip archive...")
+    if passw:
+        zip.close()
+        atexit.unregister(zip.close)
+        zip = pyzipper.AESZipFile(zipName, 'r')
+        atexit.register(zip.close)
+        zip.setpassword(passw)
+    if zip.testzip() is None:
+        zip.close()
+        atexit.unregister(zip.close)
+        print("Removing output directory...")
+        try:
+            rmtree(path)
+        except:
+            sys.exit(f"Could not remove directory '{path}'")
+    else:
+        sys.exit(f"Zip archive '{zipName}' corrupted")
+    print(f"Output directory compressed to '{zipName}'")
+
+def main() -> None:
+    """Main method"""
     try:
         docker = True if os.getenv("TSSL_DOCKER") else False
-        main()
+        args = parseArgs()
+        startTime = datetime.now()
+        print(f"Starting scan at {startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
+        outFiles = runTestssl(args)
+        endTime = datetime.now()
+        dur = endTime - startTime
+        dur -= timedelta(microseconds=dur.microseconds)
+        print("Scanning completed at " + 
+              f"{endTime.strftime('%d/%m/%Y - %H:%M:%S')} " +
+              f"(Duration: {str(dur)})")
+        if args.zip:
+            zipDir(args.directory)
+        elif args.encrypt:
+            zipDir(args.directory, args.passw)
+        else:
+            print(f"Output files written to '{args.directory}'")
+            if outFiles and not docker and \
+                yesNo("Would you like to view the HTML output files now?"):
+                for url in outFiles:
+                    webbrowser.open_new_tab(f"{url}.html")
     except KeyboardInterrupt:
         sys.exit("\nTerminated by user")
 
 
 if __name__ == "__main__":
-    app()
+    main()

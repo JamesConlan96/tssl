@@ -10,10 +10,14 @@ setup(
     py_modules=[
         'tssl'
     ],
+    install_requires=[
+        "password-strength>=0.0.3.post2",
+        "pyzipper>=0.3.6"
+    ],
     python_requires='>=3.6.0',
     entry_points={
         'console_scripts': [
-            'tssl = tssl:app'
+            'tssl = tssl:main'
         ]
     }
 )
