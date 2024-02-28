@@ -10,6 +10,7 @@ tssl.egg-info
 *.pyz
 *.csv
 *.txt
+!requirements.txt
 *.lst
 *.log
 *.json
