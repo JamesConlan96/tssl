@@ -11,7 +11,7 @@ options:
   -h, --help            show this help message and exit
   -d DIRECTORY, --directory DIRECTORY
                         directory to save output to instead of the current working directory
-  -e, --encrypt         compress output directory into an AES256 encrypted zip archive
+  -e, --encrypt         compress output directory into an AES256 encrypted zip archive (includes existing files)
   -f FILE, --file FILE  newline delimited file containing URLs to scan (can be specified multiple times per command)
   -H HEADER, --header HEADER
                         HTTP header to add to all requests in the form '<name>: <value>' (can be specified multiple times per command)
@@ -21,7 +21,7 @@ options:
   -s, --skip            skip targets for which matching output files already exist
   -u URL, --url URL     URL to scan (can be specified multiple times per command)
   -v, --verbose         display verbose output
-  -z, --zip             compress output directory into an unencrypted zip archive
+  -z, --zip             compress output directory into an unencrypted zip archive (includes existing files)
 ~~~
 
 ## Installation

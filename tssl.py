@@ -36,7 +36,7 @@ def genParser() -> argparse.ArgumentParser:
                         "current working directory")
     zipOptions.add_argument('-e', '--encrypt', action="store_true",
                             help="compress output directory into an AES256 " +
-                            "encrypted zip archive")
+                            "encrypted zip archive (includes existing files)")
     parser.add_argument('-f', '--file', nargs=1, action="extend",
                         help="newline delimited file containing URLs to scan " +
                         "(can be specified multiple times per command)",
@@ -59,7 +59,7 @@ def genParser() -> argparse.ArgumentParser:
                         help="display verbose output")
     zipOptions.add_argument('-z', '--zip', action="store_true",
                             help="compress output directory into an " +
-                            "unencrypted zip archive")
+                            "unencrypted zip archive (includes existing files)")
     return parser
 
 def parseArgs() -> argparse.Namespace:
