@@ -5,7 +5,7 @@ A wrapper around testssl.sh and aha to aid in TLS/SSL testing
 ## Usage
 
 ~~~
-usage: tssl [-h] [-d DIRECTORY] [-e] [-f FILE] [-H HEADER] [-l LABEL] [-o | -s] [-u URL] [-v] [-z]
+usage: tssl [-h] [-d DIRECTORY] [-e] [-f FILE] [-H HEADER] [-l LABEL] [-o | -s] [-t TIMEOUT] [-u URL] [-v] [-z]
 
 options:
   -h, --help            show this help message and exit
@@ -19,6 +19,8 @@ options:
                         add a label to output files
   -o, --overwrite       overwrite existing results
   -s, --skip            skip targets for which matching output files already exist
+  -t TIMEOUT, --timeout TIMEOUT
+                        number of seconds to wait before timing out a connection
   -u URL, --url URL     URL to scan (can be specified multiple times per command)
   -v, --verbose         display verbose output
   -z, --zip             compress output directory into an unencrypted zip archive (includes existing files)

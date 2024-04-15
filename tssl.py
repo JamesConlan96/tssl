@@ -52,6 +52,9 @@ def genParser() -> argparse.ArgumentParser:
     existOptions.add_argument('-s', '--skip', action="store_true",
                               help="skip targets for which matching output " +
                               "files already exist")
+    parser.add_argument('-t', '--timeout', action="store", type=int,
+                        help="number of seconds to wait before timing out a " +
+                        "connection")
     parser.add_argument('-u', '--url', nargs=1, action="extend",
                         help="URL to scan (can be specified multiple times " +
                         "per command)", dest="urls", metavar="URL")
@@ -124,6 +127,8 @@ def parseArgs() -> argparse.Namespace:
                 print("Passwords must be at least 12 characters long and " +
                       "contain at least 1 uppercase letter, 1 digit, and 1 " +
                       "special character")
+    if args.timeout:
+        args.timeout = str(args.timeout)
     targets = []
     if args.urls:
         for target in args.urls:
@@ -192,6 +197,11 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                       '--color', '3', '-oJ', f"{fileName}.json", '-oL', 
                       f"{fileName}.log", '-oC', f"{fileName}.csv", '-9', '-E',
                       target]
+        if args.timeout:
+            testsslCmd.insert(4, '--connect-timeout')
+            testsslCmd.insert(5, args.timeout)
+            testsslCmd.insert(6, '--openssl-timeout')
+            testsslCmd.insert(7, args.timeout)
         if args.verbose:
             testsslCmd.insert(4, '--show-each')
         if args.headers:
