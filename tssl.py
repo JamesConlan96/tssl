@@ -86,6 +86,7 @@ def parseArgs() -> argparse.Namespace:
     if not args.urls and not args.files:
         sys.exit("Please specify at least one target using -u/--url and/or " +
                  "-f/--file")
+    args.directory = args.directory.resolve()
     if str(args.directory).endswith(".zip") and (args.zip or args.encrypt):
         args.directory = PosixPath(str(args.directory)[:-4])
     if not args.directory.exists():
