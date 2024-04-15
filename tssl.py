@@ -15,6 +15,7 @@ from glob import glob
 import os
 from password_strength import PasswordPolicy
 from pathlib import PosixPath
+import pexpect
 import pyzipper
 import re
 from shutil import rmtree
@@ -53,8 +54,8 @@ def genParser() -> argparse.ArgumentParser:
                               help="skip targets for which matching output " +
                               "files already exist")
     parser.add_argument('-t', '--timeout', action="store", type=int,
-                        help="number of seconds to wait before timing out a " +
-                        "connection")
+                        help="number of seconds a scan has to hang for in " +
+                        "order to time out (default: 30)", default=30)
     parser.add_argument('-u', '--url', nargs=1, action="extend",
                         help="URL to scan (can be specified multiple times " +
                         "per command)", dest="urls", metavar="URL")
@@ -127,8 +128,6 @@ def parseArgs() -> argparse.Namespace:
                 print("Passwords must be at least 12 characters long and " +
                       "contain at least 1 uppercase letter, 1 digit, and 1 " +
                       "special character")
-    if args.timeout:
-        args.timeout = str(args.timeout)
     targets = []
     if args.urls:
         for target in args.urls:
@@ -197,11 +196,6 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                       '--color', '3', '-oJ', f"{fileName}.json", '-oL', 
                       f"{fileName}.log", '-oC', f"{fileName}.csv", '-9', '-E',
                       target]
-        if args.timeout:
-            testsslCmd.insert(4, '--connect-timeout')
-            testsslCmd.insert(5, args.timeout)
-            testsslCmd.insert(6, '--openssl-timeout')
-            testsslCmd.insert(7, args.timeout)
         if args.verbose:
             testsslCmd.insert(4, '--show-each')
         if args.headers:
@@ -228,17 +222,28 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                 f.write(f"{arg}")
                 if i != len(ahaCmd) - 1:
                     f.write(" ")
-        testsslProc = subprocess.Popen(testsslCmd, stdout=subprocess.PIPE,
-                                       stderr=sys.stderr, bufsize=1,
-                                       universal_newlines=True)
         testsslOut = b''
-        while True:
-            char = testsslProc.stdout.read(1)
-            if char == '' and testsslProc.poll() is not None:
-                break
-            char = bytes(char, 'utf-8')
-            testsslOut += char
-            sys.stdout.buffer.write(char)
+        run = True
+        while run:
+            testsslProc = pexpect.spawn(testsslCmd[0], testsslCmd[1:])
+            testsslProc.logfile = sys.stdout.buffer
+            while True:
+                try:
+                    testsslOut += testsslProc.read_nonblocking(
+                                                           timeout=args.timeout)
+                except pexpect.exceptions.TIMEOUT:
+                    testsslProc.close()
+                    if yesNo("\nCurrent scan timed out (process hung for " +
+                             f"{args.timeout} seconds), retry?"):
+                        for dudOutFile in glob(f"{fileName}.*"):
+                            os.remove(dudOutFile)
+                    else:
+                        run = False
+                    break
+                except pexpect.exceptions.EOF:
+                    testsslProc.close()
+                    run = False
+                    break
         htmlFile = f"{fileName}.html"
         with open(htmlFile, 'w') as f:
             aha = subprocess.run(ahaCmd, input=testsslOut, stdout=f,

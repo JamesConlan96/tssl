@@ -20,7 +20,7 @@ options:
   -o, --overwrite       overwrite existing results
   -s, --skip            skip targets for which matching output files already exist
   -t TIMEOUT, --timeout TIMEOUT
-                        number of seconds to wait before timing out a connection
+                        number of seconds a scan has to hang for in order to time out (default: 300)
   -u URL, --url URL     URL to scan (can be specified multiple times per command)
   -v, --verbose         display verbose output
   -z, --zip             compress output directory into an unencrypted zip archive (includes existing files)
