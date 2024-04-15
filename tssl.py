@@ -55,7 +55,7 @@ def genParser() -> argparse.ArgumentParser:
                               "files already exist")
     parser.add_argument('-t', '--timeout', action="store", type=int,
                         help="number of seconds a scan has to hang for in " +
-                        "order to time out (default: 30)", default=30)
+                        "order to time out (default: 60)", default=60)
     parser.add_argument('-u', '--url', nargs=1, action="extend",
                         help="URL to scan (can be specified multiple times " +
                         "per command)", dest="urls", metavar="URL")
