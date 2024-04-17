@@ -174,6 +174,7 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
     outDir = args.directory / "testssl"
     mkdirs(outDir)
     outFiles = []
+    testsslTimeout = 0 if args.timeout <= 10 else args.timeout - 10
     for target in args.targets:
         fileName = f"{outDir}/testssl_" + re.match(r'^(.+?://)?(.+?)$', 
                    target.rstrip('/')).group(2).replace('/', '_').replace(' ', 
@@ -199,6 +200,11 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                       target]
         if args.verbose:
             testsslCmd.insert(4, '--show-each')
+        if testsslTimeout:
+            testsslCmd.insert(4, '--connect-timeout')
+            testsslCmd.insert(5, str(testsslTimeout))
+            testsslCmd.insert(6, '--openssl-timeout')
+            testsslCmd.insert(7, str(testsslTimeout))
         if args.headers:
             for header in args.headers:
                 testsslCmd.insert(-9, '--reqheader')
