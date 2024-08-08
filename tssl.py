@@ -211,6 +211,7 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                 testsslCmd.insert(-9, header)
         htmlTitle = f"TestSSL - {target}"
         htmlTitle = f"{htmlTitle} - {args.label}" if args.label else htmlTitle
+        htmlFile = f"{fileName}.html"
         ahaCmd = ['aha', '--black', '-t', htmlTitle]
         with open(f"{fileName}.command", 'w') as f:
             toQuote = [' ', '/', '\\', ':']
@@ -227,8 +228,8 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                         arg = f"'{arg}'"
                         break
                 f.write(f"{arg}")
-                if i != len(ahaCmd) - 1:
-                    f.write(" ")
+                f.write(" ")
+            f.write(f"> {htmlFile}")
         testsslOut = b''
         run = True
         while run:
@@ -251,7 +252,6 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                     testsslProc.close()
                     run = False
                     break
-        htmlFile = f"{fileName}.html"
         with open(htmlFile, 'w') as f:
             aha = subprocess.run(ahaCmd, input=testsslOut, stdout=f,
                                  stderr=sys.stderr)
