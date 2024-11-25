@@ -5,10 +5,11 @@ A wrapper around testssl.sh and aha to aid in TLS/SSL testing
 ## Usage
 
 ~~~
-usage: tssl [-h] [-d DIRECTORY] [-e] [-f FILE] [-H HEADER] [-l LABEL] [-o | -s] [-t TIMEOUT] [-u URL] [-v] [-z]
+usage: tssl [-h] [-c] [-d DIRECTORY] [-e] [-f FILE] [-H HEADER] [-l LABEL] [-o] [-pA PATH] [-pT PATH] [-s] [-t TIMEOUT] [-u URL] [-v] [-z]
 
 options:
   -h, --help            show this help message and exit
+  -c, --command-only    output the manual command only; do not scan
   -d DIRECTORY, --directory DIRECTORY
                         directory to save output to instead of the current working directory
   -e, --encrypt         compress output directory into an AES256 encrypted zip archive (includes existing files)
@@ -18,6 +19,10 @@ options:
   -l LABEL, --label LABEL
                         add a label to output files
   -o, --overwrite       overwrite existing results
+  -pA PATH, --aha-path PATH
+                        path of aha executable (default: 'aha')
+  -pT PATH, --testssl-path PATH
+                        path of testssl executable (default: 'testssl')
   -s, --skip            skip targets for which matching output files already exist
   -t TIMEOUT, --timeout TIMEOUT
                         number of seconds a scan has to hang for in order to time out (default: 60)

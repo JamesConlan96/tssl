@@ -32,9 +32,12 @@ def genParser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     existOptions = parser.add_mutually_exclusive_group()
     zipOptions = parser.add_mutually_exclusive_group()
+    parser.add_argument('-c', '--command-only', action="store_true",
+                        help="output the manual command only; do not scan",
+                        dest="cmdOnly")
     parser.add_argument('-d', '--directory', type=PosixPath, default='.',
                         help="directory to save output to instead of the " +
-                        "current working directory")
+                        "current working directory", action="store")
     zipOptions.add_argument('-e', '--encrypt', action="store_true",
                             help="compress output directory into an AES256 " +
                             "encrypted zip archive (includes existing files)")
@@ -50,6 +53,13 @@ def genParser() -> argparse.ArgumentParser:
                         help="add a label to output files")
     existOptions.add_argument('-o', '--overwrite', action="store_true",
                               help="overwrite existing results")
+    parser.add_argument('-pA', '--aha-path', action="store", dest="ahaPath",
+                        help="path of aha executable (default: 'aha')",
+                        metavar="PATH", type=PosixPath, default="aha")
+    parser.add_argument('-pT', '--testssl-path', action="store",
+                        dest="testsslPath", default="testssl", metavar="PATH",
+                        help="path of testssl executable (default: 'testssl')",
+                        type=PosixPath)
     existOptions.add_argument('-s', '--skip', action="store_true",
                               help="skip targets for which matching output " +
                               "files already exist")
@@ -194,10 +204,10 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                 sys.exit(f"Output files for '{target}' already exist, " + 
                          "rerun with -o/--overwrite to overwrite them or " +
                          "-s/--skip to skip previously scanned hosts")
-        testsslCmd = ['testssl', '--warnings', 'batch', '--wide', '--sneaky', 
-                      '--color', '3', '-oJ', f"{fileName}.json", '-oL', 
-                      f"{fileName}.log", '-oC', f"{fileName}.csv", '-9', '-E',
-                      target]
+        testsslCmd = [str(args.testsslPath), '--warnings', 'batch', '--wide',
+                      '--sneaky', '--color', '3', '-oJ', f"{fileName}.json",
+                      '-oL', f"{fileName}.log", '-oC', f"{fileName}.csv", '-9',
+                      '-E', target]
         if args.verbose:
             testsslCmd.insert(4, '--show-each')
         if testsslTimeout:
@@ -211,25 +221,49 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                 testsslCmd.insert(-9, header)
         htmlTitle = f"TestSSL - {target}"
         htmlTitle = f"{htmlTitle} - {args.label}" if args.label else htmlTitle
-        htmlFile = f"{fileName}.html"
-        ahaCmd = ['aha', '--black', '-t', htmlTitle]
-        with open(f"{fileName}.command", 'w') as f:
-            toQuote = [' ', '/', '\\', ':']
-            for arg in testsslCmd:
+        ahaCmd = [str(args.ahaPath), '--black', '-t', htmlTitle]
+        cmd = ""
+        toQuote = [' ', '/', '\\', ':']
+        for i, arg in enumerate(testsslCmd):
+            if i == 0:
+                newArg = ""
+                for char in arg:
+                    if char in toQuote and char != "/":
+                        char = f"\{char}"
+                    newArg += char
+                arg = newArg
+            else:
                 for char in toQuote:
                     if char in arg:
                         arg = f"'{arg}'"
                         break
-                f.write(f"{arg} ")
-            f.write("| ")
-            for i, arg in enumerate(ahaCmd):
+            cmd += f"{arg} "
+        cmd += "| tee >("
+        for i, arg in enumerate(ahaCmd):
+            if i == 0:
+                newArg = ""
+                for char in arg:
+                    if char in toQuote and char != "/":
+                        char = f"\{char}"
+                    newArg += char
+                arg = newArg
+            else:
                 for char in toQuote:
                     if char in arg:
                         arg = f"'{arg}'"
                         break
-                f.write(f"{arg}")
-                f.write(" ")
-            f.write(f"> {htmlFile}")
+            cmd += f"{arg}"
+            if i != len(ahaCmd) - 1:
+                cmd += " "
+            else:
+                cmd += ")"
+        cmdOutFile = f"{fileName}.sh"
+        with open(cmdOutFile, 'w') as f:
+            f.write(cmd)
+        os.chmod(cmdOutFile, 0o755)
+        if args.cmdOnly:
+            print(f"{cmd}\n")
+            continue
         testsslOut = b''
         run = True
         while run:
@@ -252,6 +286,7 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                     testsslProc.close()
                     run = False
                     break
+        htmlFile = f"{fileName}.html"
         with open(htmlFile, 'w') as f:
             aha = subprocess.run(ahaCmd, input=testsslOut, stdout=f,
                                  stderr=sys.stderr)
@@ -307,22 +342,25 @@ def main() -> None:
     try:
         docker = True if os.getenv("TSSL_DOCKER") else False
         args = parseArgs()
-        startTime = datetime.now()
-        print(f"Starting scan at {startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
+        if not args.cmdOnly:
+            startTime = datetime.now()
+            print("Starting scan at " +
+                  f"{startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
         outFiles = runTestssl(args)
-        endTime = datetime.now()
-        dur = endTime - startTime
-        dur -= timedelta(microseconds=dur.microseconds)
-        print("Scanning completed at " + 
-              f"{endTime.strftime('%d/%m/%Y - %H:%M:%S')} " +
-              f"(Duration: {str(dur)})")
+        if not args.cmdOnly:
+            endTime = datetime.now()
+            dur = endTime - startTime
+            dur -= timedelta(microseconds=dur.microseconds)
+            print("Scanning completed at " + 
+                f"{endTime.strftime('%d/%m/%Y - %H:%M:%S')} " +
+                f"(Duration: {str(dur)})")
         if args.zip:
             zipDir(args.directory)
         elif args.encrypt:
             zipDir(args.directory, args.passw)
         else:
             print(f"Output files written to '{args.directory}'")
-            if outFiles and not docker and \
+            if outFiles and not docker and not args.cmdOnly and \
                 yesNo("Would you like to view the HTML output files now?"):
                 for url in outFiles:
                     webbrowser.open_new_tab(f"{url}.html")
