@@ -33,8 +33,8 @@ def genParser() -> argparse.ArgumentParser:
     existOptions = parser.add_mutually_exclusive_group()
     zipOptions = parser.add_mutually_exclusive_group()
     parser.add_argument('-c', '--command-only', action="store_true",
-                        help="output the manual command only; do not scan",
-                        dest="cmdOnly")
+                        help="output the manual command(s) to the console "+
+                        "only; do not scan", dest="cmdOnly")
     parser.add_argument('-d', '--directory', type=PosixPath, default='.',
                         help="directory to save output to instead of the " +
                         "current working directory", action="store")
@@ -182,7 +182,8 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
     @return list of output filenames (without file extensions)
     """
     outDir = args.directory / "testssl"
-    mkdirs(outDir)
+    if not args.cmdOnly:
+        mkdirs(outDir)
     outFiles = []
     testsslTimeout = 0 if args.timeout <= 10 else args.timeout - 10
     for target in args.targets:
@@ -222,7 +223,7 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
         htmlTitle = f"TestSSL - {target}"
         htmlTitle = f"{htmlTitle} - {args.label}" if args.label else htmlTitle
         ahaCmd = [str(args.ahaPath), '--black', '-t', htmlTitle]
-        cmd = ""
+        cmd = '/usr/bin/env bash -c "'
         toQuote = [' ', '/', '\\', ':']
         for i, arg in enumerate(testsslCmd):
             if i == 0:
@@ -253,17 +254,15 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                         arg = f"'{arg}'"
                         break
             cmd += f"{arg}"
-            if i != len(ahaCmd) - 1:
-                cmd += " "
-            else:
-                cmd += ")"
+            cmd += " "
+        cmd += f'> {fileName}.html)"'
+        if args.cmdOnly:
+            print(f"{cmd}")
+            continue
         cmdOutFile = f"{fileName}.sh"
         with open(cmdOutFile, 'w') as f:
             f.write(cmd)
         os.chmod(cmdOutFile, 0o755)
-        if args.cmdOnly:
-            print(f"{cmd}\n")
-            continue
         testsslOut = b''
         run = True
         while run:
@@ -354,16 +353,16 @@ def main() -> None:
             print("Scanning completed at " + 
                 f"{endTime.strftime('%d/%m/%Y - %H:%M:%S')} " +
                 f"(Duration: {str(dur)})")
-        if args.zip:
-            zipDir(args.directory)
-        elif args.encrypt:
-            zipDir(args.directory, args.passw)
-        else:
-            print(f"Output files written to '{args.directory}'")
-            if outFiles and not docker and not args.cmdOnly and \
-                yesNo("Would you like to view the HTML output files now?"):
-                for url in outFiles:
-                    webbrowser.open_new_tab(f"{url}.html")
+            if args.zip:
+                zipDir(args.directory)
+            elif args.encrypt:
+                zipDir(args.directory, args.passw)
+            else:
+                print(f"Output files written to '{args.directory}'")
+                if outFiles and not docker and not args.cmdOnly and \
+                    yesNo("Would you like to view the HTML output files now?"):
+                    for url in outFiles:
+                        webbrowser.open_new_tab(f"{url}.html")
     except KeyboardInterrupt:
         sys.exit("\nTerminated by user")
 

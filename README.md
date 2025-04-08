@@ -9,7 +9,7 @@ usage: tssl [-h] [-c] [-d DIRECTORY] [-e] [-f FILE] [-H HEADER] [-l LABEL] [-o] 
 
 options:
   -h, --help            show this help message and exit
-  -c, --command-only    output the manual command only; do not scan
+  -c, --command-only    output the manual command(s) to the console only; do not scan
   -d DIRECTORY, --directory DIRECTORY
                         directory to save output to instead of the current working directory
   -e, --encrypt         compress output directory into an AES256 encrypted zip archive (includes existing files)
