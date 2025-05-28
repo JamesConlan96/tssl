@@ -187,8 +187,14 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
     outFiles = []
     testsslTimeout = 0 if args.timeout <= 10 else args.timeout - 10
     for target in args.targets:
-        fileName = f"{outDir}/testssl_" + re.match(r'^(.+?://)?(.+?)$', 
-                   target.rstrip('/')).group(2).replace('/', '_').replace(' ', 
+        if target.strip() is None:
+            continue
+        try:
+            targetStrip = re.match(r'^(.+?://)?(.+?)$', target.rstrip('/')
+                                   ).group(2)
+        except:
+            targetStrip = target
+        fileName = f"{outDir}/testssl_" + targetStrip.replace('/', '_').replace(' ', 
                                                            '').replace(':', '_')
         fileName = f"{fileName}_{args.label}" if args.label else fileName
         existingOutput = glob(f"{fileName}*")
