@@ -99,7 +99,9 @@ def parseArgs() -> argparse.Namespace:
     args.directory = args.directory.resolve()
     if str(args.directory).endswith(".zip") and (args.zip or args.encrypt):
         args.directory = PosixPath(str(args.directory)[:-4])
-    if not args.directory.exists():
+    if args.cmdOnly:
+        pass
+    elif not args.directory.exists():
         if yesNo(f"Output directory '{args.directory}' does not exist, create" +
                  " it?"):
             mkdirs(args.directory)
