@@ -408,10 +408,17 @@ def main() -> None:
         docker = True if os.getenv("TSSL_DOCKER") else False
         args = parseArgs()
         if not args.cmdOnly:
+            pathTargets = PosixPath(args.directory, "testssl",
+                                    "targets_testssl.txt")
+            if pathTargets.exists() and not args.overwrite:
+                sys.exit(f"Target list '{pathTargets}' already exists, " + 
+                         "rerun with -o/--overwrite to overwrite it")
             startTime = datetime.now()
             print("Starting scan at " +
                   f"{startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
             print(f"Scanning {len(args.targets)} target(s)")
+            with open(pathTargets, 'w') as f:
+                f.write("\n".join(args.targets))
         outFiles = runTestssl(args)
         if not args.cmdOnly:
             endTime = datetime.now()
