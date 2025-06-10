@@ -13,6 +13,7 @@ setup(
     install_requires=[
         "password-strength>=0.0.3.post2",
         "pexpect>=4.9.0",
+        "python-libnmap>=0.7.3",
         "pyzipper>=0.3.6"
     ],
     python_requires='>=3.6.0',

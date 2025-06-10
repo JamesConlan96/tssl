@@ -12,6 +12,7 @@ import atexit
 from datetime import datetime, timedelta
 from getpass import getpass
 from glob import glob
+from libnmap.parser import NmapParser
 import os
 from password_strength import PasswordPolicy
 from pathlib import PosixPath
@@ -44,7 +45,11 @@ def genParser() -> argparse.ArgumentParser:
     parser.add_argument('-f', '--file', nargs=1, action="extend",
                         help="newline delimited file containing URLs to scan " +
                         "(can be specified multiple times per command)",
-                        dest="files", metavar="FILE")
+                        type=PosixPath, dest="files", metavar="FILE")
+    parser.add_argument('-fX', '--file-xml', nargs=1, action="extend",
+                        help="nmap XML output file to determine targets from " +
+                        "(can be specified multiple times per command)",
+                        dest="filesXml", metavar="FILE", type=PosixPath)
     parser.add_argument('-H', '--header', action="extend", nargs=1,
                         help="HTTP header to add to all requests in the form " +
                         "'<name>: <value>' (can be specified multiple times " +
@@ -76,6 +81,24 @@ def genParser() -> argparse.ArgumentParser:
                             "unencrypted zip archive (includes existing files)")
     return parser
 
+def parseNmap(nmap: PosixPath) -> list:
+    """Parses an nmap XML output file and returns a list of targets
+    @param nmap: path to nmap XML output file to parse
+    @return list of SSL/TLS endpoints
+    """
+    targets = []
+    try:
+        results = NmapParser.parse_fromfile(nmap)
+    except:
+        sys.exit(f"Error parsing nmap XML output file '{nmap}'")
+    for host in results.hosts:
+        for port in host.get_open_ports():
+            svc = host.get_service(*port)
+            if svc is not None:
+                if svc.tunnel == "ssl":
+                    targets.append(f"{host.address}:{svc.port}")
+    return targets
+
 def parseArgs() -> argparse.Namespace:
     """Parses CLI arguments
     @return: parsed arguments object
@@ -86,18 +109,18 @@ def parseArgs() -> argparse.Namespace:
         parser.print_help()
         sys.exit()
     toCheck = []
-    for i in [args.files, args.urls, args.label, args.headers,
+    for i in [args.files, args.filesXml, args.urls, args.label, args.headers,
               str(args.directory)]:
         if i is not None:
             toCheck.extend(i)
     for string in toCheck:
         if "'" in str(string):
             sys.exit("Arguments cannot contain single quotes (')")
-    if not args.urls and not args.files:
+    if not args.urls and not args.files and not args.filesXml:
         sys.exit("Please specify at least one target using -u/--url and/or " +
                  "-f/--file")
     args.directory = args.directory.resolve()
-    if str(args.directory).endswith(".zip") and (args.zip or args.encrypt):
+    if args.directory.suffix == ".zip" and (args.zip or args.encrypt):
         args.directory = PosixPath(str(args.directory)[:-4])
     if args.cmdOnly:
         pass
@@ -115,11 +138,11 @@ def parseArgs() -> argparse.Namespace:
                      "contents will be compressed, continue?"):
             sys.exit()
     if args.zip or args.encrypt:
-        if PosixPath(f"{str(args.directory)}.zip").exists() and not \
+        if args.directory.with_suffix(".zip").exists() and not \
             args.overwrite and not yesNo(f"Zip archive '{args.directory}.zip'" +
                                          " exists, overwrite it?"):
             sys.exit()
-        if args.directory.resolve().samefile(os.getcwd()):
+        if args.directory.samefile(os.getcwd()):
             sys.exit("Cannot zip the current directory, retry using " + 
                      "-d/--directory")
     if args.headers:
@@ -147,15 +170,22 @@ def parseArgs() -> argparse.Namespace:
             targets.append(target)
     if args.files:
         for target in args.files:
-            try:
-                target = PosixPath(target)
-            except:
-                sys.exit(f"'{target}' is not a valid file path")
+            target = target.resolve()
             if not target.exists():
                 sys.exit(f"Input file '{target}' does not exist")
             with target.open() as f:
-                targets += f.read().splitlines()
-    args.targets = set(targets)
+                for i in f.read().splitlines():
+                    if i.startswith("<"):
+                        sys.exit(f"Input file '{target}' contains invalid " +
+                                 "targets. Did you mean to use -fX instead of" +
+                                 "-f?")
+    if args.filesXml:
+        for target in args.filesXml:
+            target = target.resolve()
+            if not target.exists():
+                sys.exit(f"Input file '{target}' does not exist")
+            targets += parseNmap(target)
+    args.targets = set(filter(None, map(str.strip, targets)))
     return args
 
 def yesNo(prompt: str) -> bool:
@@ -200,7 +230,7 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                                                            '').replace(':', '_')
         fileName = f"{fileName}_{args.label}" if args.label else fileName
         existingOutput = glob(f"{fileName}*")
-        if existingOutput:
+        if existingOutput and not args.cmdOnly:
             if args.overwrite:
                 for f in existingOutput:
                     try:
@@ -353,6 +383,7 @@ def main() -> None:
             startTime = datetime.now()
             print("Starting scan at " +
                   f"{startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
+            print(f"Scanning {len(args.targets)} target(s)")
         outFiles = runTestssl(args)
         if not args.cmdOnly:
             endTime = datetime.now()

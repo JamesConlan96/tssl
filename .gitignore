@@ -16,3 +16,6 @@ tssl.egg-info
 *.json
 *.html
 *.zip
+*.nmap
+*.xml
+*.gnmap
