@@ -23,6 +23,7 @@ from shutil import rmtree
 import subprocess
 import sys
 import webbrowser
+import xml.etree.ElementTree as ET
 import zipfile
 
 
@@ -46,6 +47,10 @@ def genParser() -> argparse.ArgumentParser:
                         help="newline delimited file containing URLs to scan " +
                         "(can be specified multiple times per command)",
                         type=PosixPath, dest="files", metavar="FILE")
+    parser.add_argument('-fN', '--file-nessus', nargs=1, action="extend",
+                        help="nessus output file to determine targets from " +
+                        "(can be specified multiple times per command)",
+                        dest="filesNessus", metavar="FILE", type=PosixPath)
     parser.add_argument('-fX', '--file-xml', nargs=1, action="extend",
                         help="nmap XML output file to determine targets from " +
                         "(can be specified multiple times per command)",
@@ -81,6 +86,22 @@ def genParser() -> argparse.ArgumentParser:
                             "unencrypted zip archive (includes existing files)")
     return parser
 
+def parseNessus(nessus: PosixPath) -> list:
+    """Parses a nessus output file and returns a list of targets
+    @param nessus: path to nessus output file to parse
+    @return list of SSL/TLS endpoints
+    """
+    targets = []
+    try:
+        results = ET.parse(nessus)
+    except:
+        sys.exit(f"Error parsing nessus output file '{nessus}'")
+    for host in results.findall("./Report/ReportHost"):
+        for item in host.findall("ReportItem[@pluginID='10863']"):
+            ip = host.find("HostProperties/tag[@name='host-ip']").text
+            targets.append(f"{ip}:{item.attrib['port']}")
+    return targets
+
 def parseNmap(nmap: PosixPath) -> list:
     """Parses an nmap XML output file and returns a list of targets
     @param nmap: path to nmap XML output file to parse
@@ -109,16 +130,17 @@ def parseArgs() -> argparse.Namespace:
         parser.print_help()
         sys.exit()
     toCheck = []
-    for i in [args.files, args.filesXml, args.urls, args.label, args.headers,
-              str(args.directory)]:
+    for i in [args.files, args.filesNessus, args.filesXml, args.urls,
+              args.label, args.headers, str(args.directory)]:
         if i is not None:
             toCheck.extend(i)
     for string in toCheck:
         if "'" in str(string):
             sys.exit("Arguments cannot contain single quotes (')")
-    if not args.urls and not args.files and not args.filesXml:
-        sys.exit("Please specify at least one target using -u/--url and/or " +
-                 "-f/--file")
+    if not args.urls and not args.files and not args.filesNessus and not \
+                                                                  args.filesXml:
+        sys.exit("Please specify at least one target using one or more of " +
+                 "-u/--url, -f/--file, -fN/--file-nessus, -fX/--file-xml")
     args.directory = args.directory.resolve()
     if args.directory.suffix == ".zip" and (args.zip or args.encrypt):
         args.directory = PosixPath(str(args.directory)[:-4])
@@ -177,8 +199,14 @@ def parseArgs() -> argparse.Namespace:
                 for i in f.read().splitlines():
                     if i.startswith("<"):
                         sys.exit(f"Input file '{target}' contains invalid " +
-                                 "targets. Did you mean to use -fX instead of" +
-                                 "-f?")
+                                 "targets. Did you mean to use -fN or -fX " +
+                                 "instead of -f?")
+    if args.filesNessus:
+        for target in args.filesNessus:
+            target = target.resolve()
+            if not target.exists():
+                sys.exit(f"Input file '{target}' does not exist")
+            targets += parseNessus(target)
     if args.filesXml:
         for target in args.filesXml:
             target = target.resolve()

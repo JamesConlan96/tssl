@@ -5,7 +5,7 @@ A wrapper around testssl.sh and aha to aid in TLS/SSL testing
 ## Usage
 
 ~~~
-usage: tssl [-h] [-c] [-d DIRECTORY] [-e] [-f FILE] [-fX FILE] [-H HEADER] [-l LABEL] [-o] [-pA PATH] [-pT PATH] [-s] [-t TIMEOUT] [-u URL] [-v] [-z]
+usage: tssl [-h] [-c] [-d DIRECTORY] [-e] [-f FILE] [-fN FILE] [-fX FILE] [-H HEADER] [-l LABEL] [-o] [-pA PATH] [-pT PATH] [-s] [-t TIMEOUT] [-u URL] [-v] [-z]
 
 options:
   -h, --help            show this help message and exit
@@ -14,6 +14,8 @@ options:
                         directory to save output to instead of the current working directory
   -e, --encrypt         compress output directory into an AES256 encrypted zip archive (includes existing files)
   -f, --file FILE       newline delimited file containing URLs to scan (can be specified multiple times per command)
+  -fN, --file-nessus FILE
+                        nessus output file to determine targets from (can be specified multiple times per command)
   -fX, --file-xml FILE  nmap XML output file to determine targets from (can be specified multiple times per command)
   -H, --header HEADER   HTTP header to add to all requests in the form '<name>: <value>' (can be specified multiple times per command)
   -l, --label LABEL     add a label to output files

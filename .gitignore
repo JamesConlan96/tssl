@@ -19,3 +19,4 @@ tssl.egg-info
 *.nmap
 *.xml
 *.gnmap
+*.nessus
