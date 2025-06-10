@@ -408,8 +408,7 @@ def main() -> None:
         docker = True if os.getenv("TSSL_DOCKER") else False
         args = parseArgs()
         if not args.cmdOnly:
-            pathTargets = PosixPath(args.directory, "testssl",
-                                    "targets_testssl.txt")
+            pathTargets = PosixPath(args.directory, "targets_testssl.txt")
             if pathTargets.exists() and not args.overwrite:
                 sys.exit(f"Target list '{pathTargets}' already exists, " + 
                          "rerun with -o/--overwrite to overwrite it")
