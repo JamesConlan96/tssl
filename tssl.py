@@ -49,7 +49,7 @@ def genParser() -> argparse.ArgumentParser:
     zipOptions.add_argument('-e', '--encrypt', action="store_true",
                             help="compress output directory into an AES256 " +
                             "encrypted zip archive (includes existing files)")
-    inputOptions.add_argument('-f', '--file', nargs=1, action="extend",
+    inputOptions.add_argument('-fL', '--file-list', nargs=1, action="extend",
                               help="newline delimited file containing URLs to" +
                               " scan (can be specified multiple times per " +
                               "command)", type=PosixPath, dest="files",
