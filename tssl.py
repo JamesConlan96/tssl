@@ -31,62 +31,74 @@ def genParser() -> argparse.ArgumentParser:
     """Generates a CLI argument parser
     @return: argument parser object
     """
-    parser = argparse.ArgumentParser()
-    existOptions = parser.add_mutually_exclusive_group()
-    zipOptions = parser.add_mutually_exclusive_group()
-    parser.add_argument('-b', '--batch', action="store_true",
-                        help="Do not prompt the user during execution")
-    parser.add_argument('-c', '--command-only', action="store_true",
-                        help="output the manual command(s) to the console "+
-                        "only; do not scan", dest="cmdOnly")
-    parser.add_argument('-d', '--directory', type=PosixPath, default='.',
-                        help="directory to save output to instead of the " +
-                        "current working directory", action="store")
+    parser = argparse.ArgumentParser(add_help=False)
+    helpOptions = parser.add_argument_group("help options")
+    scanOptions = parser.add_argument_group("scan options")
+    inputOptions = parser.add_argument_group("input options")
+    outputOptions = parser.add_argument_group("output options")
+    existOptions = outputOptions.add_mutually_exclusive_group()
+    zipOptions = outputOptions.add_mutually_exclusive_group()
+    scanOptions.add_argument('-b', '--batch', action="store_true",
+                             help="do not prompt the user during execution")
+    outputOptions.add_argument('-c', '--command-only', action="store_true",
+                               help="output the manual command(s) to the "+
+                               "console only; do not scan", dest="cmdOnly")
+    outputOptions.add_argument('-d', '--directory', type=PosixPath, default='.',
+                               help="directory to save output to instead of " +
+                               "the current working directory", action="store")
     zipOptions.add_argument('-e', '--encrypt', action="store_true",
                             help="compress output directory into an AES256 " +
                             "encrypted zip archive (includes existing files)")
-    parser.add_argument('-f', '--file', nargs=1, action="extend",
-                        help="newline delimited file containing URLs to scan " +
-                        "(can be specified multiple times per command)",
-                        type=PosixPath, dest="files", metavar="FILE")
-    parser.add_argument('-fN', '--file-nessus', nargs=1, action="extend",
-                        help="nessus output file to determine targets from " +
-                        "(can be specified multiple times per command)",
-                        dest="filesNessus", metavar="FILE", type=PosixPath)
-    parser.add_argument('-fX', '--file-xml', nargs=1, action="extend",
-                        help="nmap XML output file to determine targets from " +
-                        "(can be specified multiple times per command)",
-                        dest="filesXml", metavar="FILE", type=PosixPath)
-    parser.add_argument('-H', '--header', action="extend", nargs=1,
-                        help="HTTP header to add to all requests in the form " +
-                        "'<name>: <value>' (can be specified multiple times " +
-                        "per command)", dest="headers", metavar="HEADER")
-    parser.add_argument('-l', '--label', action="store",
-                        help="add a label to output files")
+    inputOptions.add_argument('-f', '--file', nargs=1, action="extend",
+                              help="newline delimited file containing URLs to" +
+                              " scan (can be specified multiple times per " +
+                              "command)", type=PosixPath, dest="files",
+                              metavar="FILE")
+    inputOptions.add_argument('-fN', '--file-nessus', nargs=1, action="extend",
+                              help="nessus output file to determine targets " +
+                              "from (can be specified multiple times per " +
+                              "command)", dest="filesNessus", metavar="FILE",
+                              type=PosixPath)
+    inputOptions.add_argument('-fX', '--file-xml', nargs=1, action="extend",
+                              help="nmap XML output file to determine targets" +
+                              " from (can be specified multiple times per " +
+                              "command)", dest="filesXml", metavar="FILE",
+                              type=PosixPath)
+    helpOptions.add_argument('-h', '--help', action="help",
+                             help="show this help message and exit")
+    scanOptions.add_argument('-H', '--header', action="extend", nargs=1,
+                             help="HTTP header to add to all requests in the " +
+                             "form '<name>: <value>' (can be specified " +
+                             "multiple times per command)", dest="headers",
+                             metavar="HEADER")
+    outputOptions.add_argument('-l', '--label', action="store",
+                               help="add a label to output files")
     existOptions.add_argument('-o', '--overwrite', action="store_true",
                               help="overwrite existing results")
-    parser.add_argument('-p', '--proxy', action="store",
-                        metavar="<host:port|auto>",
-                        help="proxy to connect via in the form <host:port> or" +
-                             " 'auto' to use value from $env ($http(s)_proxy)")
-    parser.add_argument('-pA', '--aha-path', action="store", dest="ahaPath",
-                        help="path of aha executable (default: 'aha')",
-                        metavar="PATH", type=PosixPath, default="aha")
-    parser.add_argument('-pT', '--testssl-path', action="store",
-                        dest="testsslPath", default="testssl", metavar="PATH",
-                        help="path of testssl executable (default: 'testssl')",
-                        type=PosixPath)
+    scanOptions.add_argument('-p', '--proxy', action="store",
+                             metavar="<host:port|auto>",
+                             help="proxy to connect via in the form " +
+                             "<host:port> or 'auto' to use value from $env " +
+                             "($http(s)_proxy)")
+    scanOptions.add_argument('-pA', '--aha-path', action="store",
+                             dest="ahaPath", help="path of aha executable " +
+                             "(default: 'aha')", metavar="PATH", type=PosixPath,
+                             default="aha")
+    scanOptions.add_argument('-pT', '--testssl-path', action="store",
+                             dest="testsslPath", default="testssl",
+                             metavar="PATH", help="path of testssl executable" +
+                             " (default: 'testssl')", type=PosixPath)
     existOptions.add_argument('-s', '--skip', action="store_true",
                               help="skip targets for which matching output " +
                               "files already exist")
-    parser.add_argument('-t', '--timeout', action="store", type=int,
-                        help="number of seconds a scan has to hang for in " +
-                        "order to time out (default: 60)", default=60)
-    parser.add_argument('-u', '--url', nargs=1, action="extend",
-                        help="URL to scan (can be specified multiple times " +
-                        "per command)", dest="urls", metavar="URL")
-    parser.add_argument('-v', '--verbose', action="store_true",
-                        help="display verbose output")
+    scanOptions.add_argument('-t', '--timeout', action="store", type=int,
+                             help="number of seconds a scan has to hang for " +
+                             "in order to time out (default: 60)", default=60)
+    inputOptions.add_argument('-u', '--url', nargs=1, action="extend",
+                              help="URL to scan (can be specified multiple " +
+                              "times per command)", dest="urls", metavar="URL")
+    scanOptions.add_argument('-v', '--verbose', action="store_true",
+                             help="display verbose output")
     zipOptions.add_argument('-z', '--zip', action="store_true",
                             help="compress output directory into an " +
                             "unencrypted zip archive (includes existing files)")
