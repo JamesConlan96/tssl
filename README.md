@@ -5,7 +5,8 @@ A wrapper around testssl.sh and aha to aid in TLS/SSL testing
 ## Usage
 
 ~~~
-usage: tssl [-h] [-c] [-d DIRECTORY] [-e] [-f FILE] [-fN FILE] [-fX FILE] [-H HEADER] [-l LABEL] [-o] [-pA PATH] [-pT PATH] [-s] [-t TIMEOUT] [-u URL] [-v] [-z]
+usage: tssl [-h] [-c] [-d DIRECTORY] [-e] [-f FILE] [-fN FILE] [-fX FILE] [-H HEADER] [-l LABEL] [-o] [-p <host:port|auto>] [-pA PATH] [-pT PATH] [-s]
+            [-t TIMEOUT] [-u URL] [-v] [-z]
 
 options:
   -h, --help            show this help message and exit
@@ -20,6 +21,8 @@ options:
   -H, --header HEADER   HTTP header to add to all requests in the form '<name>: <value>' (can be specified multiple times per command)
   -l, --label LABEL     add a label to output files
   -o, --overwrite       overwrite existing results
+  -p, --proxy <host:port|auto>
+                        proxy to connect via in the form <host:port> or 'auto' to use value from $env ($http(s)_proxy)
   -pA, --aha-path PATH  path of aha executable (default: 'aha')
   -pT, --testssl-path PATH
                         path of testssl executable (default: 'testssl')
