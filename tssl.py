@@ -63,6 +63,10 @@ def genParser() -> argparse.ArgumentParser:
                         help="add a label to output files")
     existOptions.add_argument('-o', '--overwrite', action="store_true",
                               help="overwrite existing results")
+    parser.add_argument('-p', '--proxy', action="store",
+                        metavar="<host:port|auto>",
+                        help="proxy to connect via in the form <host:port> or" +
+                             " 'auto' to use value from $env ($http(s)_proxy)")
     parser.add_argument('-pA', '--aha-path', action="store", dest="ahaPath",
                         help="path of aha executable (default: 'aha')",
                         metavar="PATH", type=PosixPath, default="aha")
@@ -167,6 +171,12 @@ def parseArgs() -> argparse.Namespace:
         if args.directory.samefile(os.getcwd()):
             sys.exit("Cannot zip the current directory, retry using " + 
                      "-d/--directory")
+    if args.proxy is not None:
+        proxyStrip = args.proxy.strip()
+        if proxyStrip:
+            args.proxy = proxyStrip
+        else:
+            sys.exit("Please specify a value for proxy")
     if args.headers:
         for header in args.headers:
             if not re.match(r'^.+?: .+?$', header):
@@ -214,6 +224,8 @@ def parseArgs() -> argparse.Namespace:
                 sys.exit(f"Input file '{target}' does not exist")
             targets += parseNmap(target)
     args.targets = set(filter(None, map(str.strip, targets)))
+    if not args.targets:
+        sys.exit("No targets detected")
     return args
 
 def yesNo(prompt: str) -> bool:
@@ -277,6 +289,9 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                       '-E', target]
         if args.verbose:
             testsslCmd.insert(4, '--show-each')
+        if args.proxy is not None:
+            testsslCmd.insert(4, '--proxy')
+            testsslCmd.insert(5, args.proxy)
         if testsslTimeout:
             testsslCmd.insert(4, '--connect-timeout')
             testsslCmd.insert(5, str(testsslTimeout))
@@ -416,6 +431,7 @@ def main() -> None:
             print("Starting scan at " +
                   f"{startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
             print(f"Scanning {len(args.targets)} target(s)")
+            print(f"Using proxy '{args.proxy}'")
             with open(pathTargets, 'w') as f:
                 f.write("\n".join(args.targets))
         outFiles = runTestssl(args)
