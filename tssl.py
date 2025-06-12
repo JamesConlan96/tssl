@@ -34,6 +34,8 @@ def genParser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     existOptions = parser.add_mutually_exclusive_group()
     zipOptions = parser.add_mutually_exclusive_group()
+    parser.add_argument('-b', '--batch', action="store_true",
+                        help="Do not prompt the user during execution")
     parser.add_argument('-c', '--command-only', action="store_true",
                         help="output the manual command(s) to the console "+
                         "only; do not scan", dest="cmdOnly")
@@ -151,8 +153,8 @@ def parseArgs() -> argparse.Namespace:
     if args.cmdOnly:
         pass
     elif not args.directory.exists():
-        if yesNo(f"Output directory '{args.directory}' does not exist, create" +
-                 " it?"):
+        if args.batch or yesNo(f"Output directory '{args.directory}' does not" +
+                               " exist, create it?"):
             mkdirs(args.directory)
         else:
             sys.exit()
@@ -160,14 +162,19 @@ def parseArgs() -> argparse.Namespace:
         sys.exit(f"Specified output directory '{args.directory}' is not a " +
                  "directory")
     elif args.zip or args.encrypt:
-        if not yesNo(f"Output directory '{args.directory}' exists, all " + 
-                     "contents will be compressed, continue?"):
+        if not args.batch and not yesNo(f"Output directory '{args.directory}'" +
+                                        " exists, all contents will be " +
+                                        "compressed, continue?"):
             sys.exit()
     if args.zip or args.encrypt:
         if args.directory.with_suffix(".zip").exists() and not \
-            args.overwrite and not yesNo(f"Zip archive '{args.directory}.zip'" +
-                                         " exists, overwrite it?"):
-            sys.exit()
+            args.overwrite:
+                if args.batch:
+                    sys.exit(f"Zip archive '{args.directory}.zip' exists, " +
+                             "rerun using -o/--overwrite to overwrite it")
+                elif not yesNo(f"Zip archive '{args.directory}.zip' exists, " +
+                              "overwrite it?"):
+                    sys.exit()
         if args.directory.samefile(os.getcwd()):
             sys.exit("Cannot zip the current directory, retry using " + 
                      "-d/--directory")
@@ -355,8 +362,10 @@ def runTestssl(args: argparse.Namespace) -> list[str]:
                                                            timeout=args.timeout)
                 except pexpect.exceptions.TIMEOUT:
                     testsslProc.close()
-                    if yesNo("\nCurrent scan timed out (process hung for " +
-                             f"{args.timeout} seconds), retry?"):
+                    if not args.batch and yesNo("\nCurrent scan timed out " +
+                                                "(process hung for " +
+                                                f"{args.timeout} seconds), " +
+                                                "retry?"):
                         for dudOutFile in glob(f"{fileName}.*"):
                             os.remove(dudOutFile)
                     else:
@@ -431,7 +440,8 @@ def main() -> None:
             print("Starting scan at " +
                   f"{startTime.strftime('%d/%m/%Y - %H:%M:%S')}")
             print(f"Scanning {len(args.targets)} target(s)")
-            print(f"Using proxy '{args.proxy}'")
+            if args.proxy:
+                print(f"Using proxy '{args.proxy}'")
             with open(pathTargets, 'w') as f:
                 f.write("\n".join(args.targets))
         outFiles = runTestssl(args)
@@ -448,8 +458,9 @@ def main() -> None:
                 zipDir(args.directory, args.passw)
             else:
                 print(f"Output files written to '{args.directory}'")
-                if outFiles and not docker and not args.cmdOnly and \
-                    yesNo("Would you like to view the HTML output files now?"):
+                if outFiles and not docker and not args.cmdOnly and not \
+                    args.batch and yesNo("Would you like to view the HTML " +
+                                         "output files now?"):
                     for url in outFiles:
                         webbrowser.open_new_tab(f"{url}.html")
     except KeyboardInterrupt:

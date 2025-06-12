@@ -5,11 +5,12 @@ A wrapper around testssl.sh and aha to aid in TLS/SSL testing
 ## Usage
 
 ~~~
-usage: tssl [-h] [-c] [-d DIRECTORY] [-e] [-f FILE] [-fN FILE] [-fX FILE] [-H HEADER] [-l LABEL] [-o] [-p <host:port|auto>] [-pA PATH] [-pT PATH] [-s]
-            [-t TIMEOUT] [-u URL] [-v] [-z]
+usage: tssl [-h] [-b] [-c] [-d DIRECTORY] [-e] [-f FILE] [-fN FILE] [-fX FILE] [-H HEADER] [-l LABEL] [-o] [-p <host:port|auto>] [-pA PATH] [-pT PATH]
+            [-s] [-t TIMEOUT] [-u URL] [-v] [-z]
 
 options:
   -h, --help            show this help message and exit
+  -b, --batch           Do not prompt the user during execution
   -c, --command-only    output the manual command(s) to the console only; do not scan
   -d, --directory DIRECTORY
                         directory to save output to instead of the current working directory
