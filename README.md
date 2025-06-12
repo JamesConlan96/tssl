@@ -5,7 +5,7 @@ A wrapper around testssl.sh and aha to aid in TLS/SSL testing
 ## Usage
 
 ~~~
-usage: tssl [-b] [-c] [-d DIRECTORY] [-e] [-f FILE] [-fN FILE] [-fX FILE] [-h] [-H HEADER] [-l LABEL] [-o] [-p <host:port|auto>] [-pA PATH] [-pT PATH] [-s] [-t TIMEOUT] [-u URL] [-v] [-z]
+usage: tssl [-b] [-c] [-d DIRECTORY] [-e] [-fL FILE] [-fN FILE] [-fX FILE] [-h] [-H HEADER] [-l LABEL] [-o] [-p <host:port|auto>] [-pA PATH] [-pT PATH] [-s] [-t TIMEOUT] [-u URL] [-v] [-z]
 
 help options:
   -h, --help            show this help message and exit
@@ -23,7 +23,8 @@ scan options:
   -v, --verbose         display verbose output
 
 input options:
-  -f, --file FILE       newline delimited file containing URLs to scan (can be specified multiple times per command)
+  -fL, --file-list FILE
+                        newline delimited file containing URLs to scan (can be specified multiple times per command)
   -fN, --file-nessus FILE
                         nessus output file to determine targets from (can be specified multiple times per command)
   -fX, --file-xml FILE  nmap XML output file to determine targets from (can be specified multiple times per command)
